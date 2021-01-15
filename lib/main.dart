@@ -32,6 +32,7 @@ class Cube extends StatefulWidget {
 class _CubeState extends State<Cube> with SingleTickerProviderStateMixin {
   AnimationController animationController;
   bool _canBeDragged = false;
+  double delta = 0;
   final double maxSlide = 300.0;
 
   @override
@@ -97,7 +98,7 @@ class _CubeState extends State<Cube> with SingleTickerProviderStateMixin {
                     rightOffset = Offset(maxSlide * (rightToCenter), 0);
                     rightRotateY = pi / 2 * -rightToCenter;
                   }
-                  
+
                   return Stack(
                     children: [
                       Transform.translate(
@@ -167,10 +168,18 @@ class _CubeState extends State<Cube> with SingleTickerProviderStateMixin {
   }
 
   void _onDragEnd(DragEndDetails details) {
+    double _kMinFlingVelocity = 365.0;
+
     if (animationController.isDismissed || animationController.isCompleted) {
       return;
     }
-    if (animationController.value < -0.5) {
+    print("${animationController.status} || ${animationController.value}");
+
+    if (details.velocity.pixelsPerSecond.dx.abs() >= _kMinFlingVelocity) {
+      double visualVelocity = details.velocity.pixelsPerSecond.dx /
+          MediaQuery.of(context).size.width;
+      animationController.fling(velocity: visualVelocity);
+    } else if (animationController.value < -0.5) {
       animationController.reverse();
     } else if (animationController.value > 0.5) {
       animationController.forward();
