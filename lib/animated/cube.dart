@@ -8,10 +8,18 @@ import '../utis/extension.dart';
 class Cube extends StatefulWidget {
   final List<Widget> children;
   final int startingIndex;
-  final double width;
+  final double contentWidth;
+  final double contentHeight;
+  final Function(int) onPageChanged;
 
-  Cube({Key key, this.children, this.startingIndex, this.width})
-      : super(key: key);
+  Cube({
+    Key key,
+    @required this.children,
+    this.startingIndex,
+    @required this.contentWidth,
+    this.contentHeight,
+    this.onPageChanged,
+  }) : super(key: key);
 
   @override
   _CubeState createState() => _CubeState();
@@ -75,7 +83,7 @@ class _CubeState extends State<Cube> with SingleTickerProviderStateMixin {
       child: AnimatedBuilder(
           animation: animationController,
           builder: (context, _) {
-            var maxSlide = widget.width;
+            var maxSlide = widget.contentWidth;
             var defaultOffset = Offset(maxSlide, 0);
             var defaultRotation = math.pi / 2;
             var previous = calcPrevious(index);
@@ -121,14 +129,18 @@ class _CubeState extends State<Cube> with SingleTickerProviderStateMixin {
                   rotation = mainRotateY;
                 }
 
-                return Transform.translate(
-                  offset: offset,
-                  child: Transform(
-                    transform: Matrix4.identity()
-                      ..setEntry(3, 2, 0.001)
-                      ..rotateY(rotation),
-                    alignment: alignment,
-                    child: e,
+                return Container(
+                  width: widget.contentWidth,
+                  height: widget.contentHeight,
+                  child: Transform.translate(
+                    offset: offset,
+                    child: Transform(
+                      transform: Matrix4.identity()
+                        ..setEntry(3, 2, 0.001)
+                        ..rotateY(rotation),
+                      alignment: alignment,
+                      child: e,
+                    ),
                   ),
                 );
               }).toList(),
@@ -143,9 +155,21 @@ class _CubeState extends State<Cube> with SingleTickerProviderStateMixin {
 
   void _onDragUpdate(DragUpdateDetails details) {
     if (_canBeDragged) {
-      double delta = details.primaryDelta / widget.width;
+      double delta = details.primaryDelta / widget.contentWidth;
       animationController.value += delta;
     }
+  }
+
+  void _moveBack() {
+    index = calcNext(index);
+    animationController.value = 0;
+    widget.onPageChanged?.call(index);
+  }
+
+  void _moveForward() {
+    index = calcPrevious(index);
+    animationController.value = 0;
+    widget.onPageChanged?.call(index);
   }
 
   void _onDragEnd(DragEndDetails details) {
@@ -160,22 +184,18 @@ class _CubeState extends State<Cube> with SingleTickerProviderStateMixin {
           MediaQuery.of(context).size.width;
       animationController.fling(velocity: visualVelocity).whenComplete(() {
         if (visualVelocity < 0) {
-          index = calcNext(index);
-          animationController.value = 0;
+          _moveBack();
         } else if (visualVelocity > 0) {
-          index = calcPrevious(index);
-          animationController.value = 0;
+          _moveForward();
         }
       });
-    } else if (animationController.value < -0.5) {
+    } else if (animationController.value < -0.3) {
       animationController.reverse().whenComplete(() {
-        index = calcNext(index);
-        animationController.value = 0;
+        _moveBack();
       });
-    } else if (animationController.value > 0.5) {
+    } else if (animationController.value > 0.3) {
       animationController.forward().whenComplete(() {
-        index = calcPrevious(index);
-        animationController.value = 0;
+        _moveForward();
       });
     } else {
       animationController.animateTo(0);
