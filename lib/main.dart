@@ -3,6 +3,8 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
+import 'utis/extension.dart';
+
 void main() {
   runApp(MyApp());
 }
@@ -35,6 +37,28 @@ class _CubeState extends State<Cube> with SingleTickerProviderStateMixin {
   double delta = 0;
   final double maxSlide = 300.0;
 
+  var index = 0;
+  var children = <Widget>[
+    Container(
+      color: Colors.red,
+      width: 300,
+      height: 300,
+      child: Center(child: Text("0")),
+    ),
+    Container(
+      color: Colors.yellow,
+      width: 300,
+      height: 300,
+      child: Center(child: Text("1")),
+    ),
+    Container(
+      color: Colors.green,
+      width: 300,
+      height: 300,
+      child: Center(child: Text("2")),
+    )
+  ];
+
   @override
   void initState() {
     super.initState();
@@ -57,6 +81,22 @@ class _CubeState extends State<Cube> with SingleTickerProviderStateMixin {
       ? animationController.forward()
       : animationController.reverse();
 
+  int calcPrevious(int index) {
+    var newIndex = index - 1;
+    if (newIndex < 0) {
+      newIndex = children.length - 1;
+    }
+    return newIndex;
+  }
+
+  int calcNext(int index) {
+    var newIndex = index + 1;
+    if (newIndex >= children.length) {
+      newIndex = 0;
+    }
+    return newIndex;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -68,7 +108,6 @@ class _CubeState extends State<Cube> with SingleTickerProviderStateMixin {
         onHorizontalDragUpdate: _onDragUpdate,
         onHorizontalDragEnd: _onDragEnd,
         behavior: HitTestBehavior.translucent,
-        onTap: toggle,
         child: Container(
           color: Colors.blue,
           width: double.infinity,
@@ -77,12 +116,16 @@ class _CubeState extends State<Cube> with SingleTickerProviderStateMixin {
             child: AnimatedBuilder(
                 animation: animationController,
                 builder: (context, _) {
+                  var defaultOffset = Offset(maxSlide, 0);
+                  var defaultRotation = pi / 2;
+                  var previous = calcPrevious(index);
+                  var next = calcNext(index);
                   var mainOffset =
                       Offset(maxSlide * (animationController.value), 0);
                   var mainRotateY = pi / 2 * -animationController.value;
 
-                  Offset leftOffset = Offset(-maxSlide, 0);
-                  double leftRotateY = -pi / 2;
+                  Offset leftOffset = defaultOffset;
+                  double leftRotateY = defaultRotation;
                   var leftToCenter =
                       lerpDouble(-1, 0, animationController.value);
                   if (leftToCenter > -1) {
@@ -90,8 +133,8 @@ class _CubeState extends State<Cube> with SingleTickerProviderStateMixin {
                     leftRotateY = pi / 2 * -leftToCenter;
                   }
 
-                  Offset rightOffset = Offset(maxSlide, 0);
-                  double rightRotateY = pi / 2;
+                  Offset rightOffset = defaultOffset;
+                  double rightRotateY = defaultRotation;
                   var rightToCenter =
                       lerpDouble(1, 0, -animationController.value);
                   if (rightToCenter < 1) {
@@ -100,52 +143,37 @@ class _CubeState extends State<Cube> with SingleTickerProviderStateMixin {
                   }
 
                   return Stack(
-                    children: [
-                      Transform.translate(
-                        offset: leftOffset,
+                    children: children.mapIndexed((e, i) {
+                      var alignment = FractionalOffset.center;
+                      var offset = defaultOffset;
+                      var rotation = defaultRotation;
+
+                      if (i == previous) {
+                        alignment = FractionalOffset.centerRight;
+                        offset = leftOffset;
+                        rotation = leftRotateY;
+                      } else if (i == next) {
+                        alignment = FractionalOffset.centerLeft;
+                        offset = rightOffset;
+                        rotation = rightRotateY;
+                      } else {
+                        alignment = animationController.value < 0
+                            ? FractionalOffset.centerRight
+                            : FractionalOffset.centerLeft;
+                        offset = mainOffset;
+                        rotation = mainRotateY;
+                      }
+                      return Transform.translate(
+                        offset: offset,
                         child: Transform(
                           transform: Matrix4.identity()
                             ..setEntry(3, 2, 0.001)
-                            ..rotateY(leftRotateY),
-                          alignment: FractionalOffset.centerRight,
-                          child: Container(
-                            color: Colors.green,
-                            width: 300,
-                            height: 300,
-                          ),
+                            ..rotateY(rotation),
+                          alignment: alignment,
+                          child: e,
                         ),
-                      ),
-                      Transform.translate(
-                        offset: rightOffset,
-                        child: Transform(
-                          transform: Matrix4.identity()
-                            ..setEntry(3, 2, 0.001)
-                            ..rotateY(rightRotateY),
-                          alignment: FractionalOffset.centerLeft,
-                          child: Container(
-                            color: Colors.yellow,
-                            width: 300,
-                            height: 300,
-                          ),
-                        ),
-                      ),
-                      Transform.translate(
-                        offset: mainOffset,
-                        child: Transform(
-                          transform: Matrix4.identity()
-                            ..setEntry(3, 2, 0.001)
-                            ..rotateY(mainRotateY),
-                          alignment: animationController.value < 0
-                              ? FractionalOffset.centerRight
-                              : FractionalOffset.centerLeft,
-                          child: Container(
-                            color: Colors.red,
-                            width: 300,
-                            height: 300,
-                          ),
-                        ),
-                      ),
-                    ],
+                      );
+                    }).toList(),
                   );
                 }),
           ),
@@ -155,9 +183,7 @@ class _CubeState extends State<Cube> with SingleTickerProviderStateMixin {
   }
 
   void _onDragStart(DragStartDetails details) {
-    bool isDragOpenFromLeft = animationController.isDismissed;
-    bool isDragCloseFromRight = animationController.isCompleted;
-    _canBeDragged = isDragOpenFromLeft || isDragCloseFromRight;
+    _canBeDragged = animationController.value == 0;
   }
 
   void _onDragUpdate(DragUpdateDetails details) {
@@ -173,18 +199,32 @@ class _CubeState extends State<Cube> with SingleTickerProviderStateMixin {
     if (animationController.isDismissed || animationController.isCompleted) {
       return;
     }
-    print("${animationController.status} || ${animationController.value}");
 
     if (details.velocity.pixelsPerSecond.dx.abs() >= _kMinFlingVelocity) {
       double visualVelocity = details.velocity.pixelsPerSecond.dx /
           MediaQuery.of(context).size.width;
-      animationController.fling(velocity: visualVelocity);
-    } else if (animationController.value < -0.5) {
-      animationController.reverse();
-    } else if (animationController.value > 0.5) {
-      animationController.forward();
+      animationController.fling(velocity: visualVelocity).whenComplete(() {
+        if (visualVelocity < 0) {
+          index = calcNext(index);
+          animationController.value = 0;
+        } else if (visualVelocity > 0) {
+          index = calcPrevious(index);
+          animationController.value = 0;
+        }
+      });
+    } else if (animationController.value < -0.1) {
+      animationController.reverse().whenComplete(() {
+        index = calcNext(index);
+        animationController.value = 0;
+      });
+    } else if (animationController.value > 0.1) {
+      animationController.forward().whenComplete(() {
+        index = calcPrevious(index);
+        animationController.value = 0;
+      });
     } else {
       animationController.animateTo(0);
     }
+    print(index);
   }
 }
