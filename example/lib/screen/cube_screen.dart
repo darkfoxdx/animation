@@ -8,15 +8,17 @@ class CubeScreen extends StatelessWidget {
       appBar: AppBar(
         title: Text("Cube"),
       ),
-      body: Cube(
-        width: MediaQuery.of(context).size.width,
-        children: [
-          Image.asset('assets/cube/example1.jpg'),
-          Image.asset('assets/cube/example2.jpg'),
-          Image.asset('assets/cube/example3.jpg'),
-          Image.asset('assets/cube/example4.jpg'),
-          Image.asset('assets/cube/example5.jpg'),
-        ],
+      body: Center(
+        child: Cube(
+          width: MediaQuery.of(context).size.width,
+          children: [
+            Image.asset('assets/cube/example1.jpg'),
+            Image.asset('assets/cube/example2.jpg'),
+            Image.asset('assets/cube/example3.jpg'),
+            Image.asset('assets/cube/example4.jpg'),
+            Image.asset('assets/cube/example5.jpg'),
+          ],
+        ),
       ),
     );
   }
