@@ -3,7 +3,7 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 
-import '../utis/extension.dart';
+import '../../utis/extension.dart';
 
 class Cube extends StatefulWidget {
   final List<Widget> children;

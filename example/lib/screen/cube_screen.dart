@@ -1,5 +1,6 @@
-import 'package:animation/animated/cube.dart';
 import 'package:flutter/material.dart';
+
+import 'package:animation/animation.dart';
 
 class CubeScreen extends StatefulWidget {
   @override
